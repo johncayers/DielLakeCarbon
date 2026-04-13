@@ -17,12 +17,12 @@ from datetime import datetime, timezone, timedelta
 import warnings; warnings.filterwarnings('ignore')
 
 # ===================== CONFIGURATION =====================
-LATITUDE, LONGITUDE, TZ_OFF = 36.1627, -86.7816, -5
+LATITUDE, LONGITUDE, TZ_OFF = 35.939311, -87.015833, -5
 LAKE_DEPTH = 1.0
 ATM_d13C = -8.5;  ATM_CO2_PPM = 425.0
 R_VPDB = 0.011237  # 13C/12C standard ratio
-CSV_PATH = 'SL20241020.csv'
-OUTPUT_DIR = 'output'
+CSV_PATH = 'SL20250718.csv'
+OUTPUT_DIR = 'output/summer'
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # ===================== ISOTOPE-ENABLED PHREEQC DATABASE =====================
