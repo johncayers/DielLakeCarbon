@@ -14,10 +14,10 @@ import warnings; warnings.filterwarnings('ignore')
 
 LATITUDE, LONGITUDE, TZ_OFF = 35.939311, -87.015833, -5
 LAKE_DEPTH=1.0; ATM_d13C=-8.5; ATM_CO2_PPM=425.0; R_VPDB=0.011237; CA_MMOL=1.0
-CSV_PATH='/mnt/user-data/uploads/SL20241020.csv'
-OUTPUT_DIR='/home/claude/output_v6b'; os.makedirs(OUTPUT_DIR,exist_ok=True)
+CSV_PATH='input\\SL20250718.csv'
+OUTPUT_DIR='output\\summer\\v6b'; os.makedirs(OUTPUT_DIR,exist_ok=True)
 
-PHREEQC_DB = open('/home/claude/output_v6/phreeqc_v6.dat').read()
+PHREEQC_DB = open('input\\phreeqc_v6.dat').read()
 
 def Sc_o2(T):  return 1745.1-124.34*T+4.8055*T**2-0.10115*T**3+0.00086842*T**4
 def Sc_co2(T): return 1923.6-125.06*T+4.3773*T**2-0.085681*T**3+0.00070284*T**4
