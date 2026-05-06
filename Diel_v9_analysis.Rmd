@@ -14,27 +14,45 @@ output:
     highlight: tango
 ---
 
+<!-- !diagnostics off -->
+
 ```{r setup, message=FALSE, warning=FALSE}
+# nolint: start
 library(tidyverse)
 library(lubridate)
 library(scales)
 library(knitr)
 library(kableExtra)
 
+# Suppress R CMD CHECK warnings for tidyverse NSE (non-standard evaluation)
+utils::globalVariables(c(
+  "Season", "DateTime", "Daylight_flag", "is_night", "block_id", "xmin", "xmax",
+  "Parameter", "Value", "Type", "n", "Mean", "SD", "Median", "Min", "Max",
+  "Variable", "GPP_observed_mgO2Lh", "GPP_modeled_mgO2Lh",
+  "ER_observed_mgO2Lh", "ER_modeled_mgO2Lh", "NEP_mgO2Lh",
+  "SI_Calcite", "SIc", "Ca_measured_mgL", "pCO2_uatm", "CO2flux_mmol_m2_d",
+  "pH_measured", "pH_modeled", "Temperature_C", "PAR_Wm2",
+  "KO2_m_d", "k600_m_d", "CO2aq_mgL", "HCO3_mgL", "CO3_mgL", "DIC_mgL",
+  "d13C_DIC_measured", "d13C_DIC_modeled", "d13C_residual",
+  "d13C_CO2aq_eq", "d13C_HCO3_eq", "Na_measured_mgL", "Cl_measured_mgL",
+  "SI_scaled", "SIc_scaled", "flux_pos", "flux_neg", "y_outgas", "y_ingas"
+))
+# nolint: end
+
 # Create output directory for plots
 dir.create("plots", showWarnings = FALSE)
 
 # Helper: save a ggplot in both PNG and SVG
 save_plot <- function(p, name, width = 12, height = 6, dpi = 300) {
-  ggsave(file.path("plots", paste0(name, ".png")), p,
+  ggsave(file.path("plots", paste0(name, ".png")), p, # nolint: unmatched_fun
          width = width, height = height, dpi = dpi, bg = "white")
-  ggsave(file.path("plots", paste0(name, ".svg")), p,
+  ggsave(file.path("plots", paste0(name, ".svg")), p, # nolint: unmatched_fun
          width = width, height = height, bg = "white")
   invisible(p)
 }
 
-# Publication-quality theme (base_size = 14 → ~8 pt at double-column print width)
-# Adjust base_size if targeting a different final print size.
+# Publication-quality theme (base_size = 14 → ~8 pt at double-column print
+# width). Adjust base_size if targeting a different final print size.
 theme_pub <- theme_bw(base_size = 14) +
   theme(
     plot.title         = element_text(face = "bold", size = 16),
@@ -47,20 +65,21 @@ theme_pub <- theme_bw(base_size = 14) +
     legend.key.size    = unit(0.8, "lines")
   )
 
-# Helper: build a data frame of contiguous night-time intervals for geom_rect shading.
-# Each row in the source data is assumed to cover one hour; rectangles are padded
-# by ±30 min so they span the full hour of each timestep.
+# Helper: build a data frame of contiguous night-time intervals for
+# geom_rect shading. Each row in the source data is assumed to cover one
+# hour; rectangles are padded by ±30 min so they span the full hour of
+# each timestep.
 get_night_rects <- function(data) {
-  data %>%
-    arrange(Season, DateTime) %>%
-    group_by(Season) %>%
-    mutate(
-      is_night = Daylight_flag == 0,
-      block_id = cumsum(is_night != lag(is_night, default = FALSE))
-    ) %>%
-    filter(is_night) %>%
-    group_by(Season, block_id) %>%
-    summarise(
+  data |>
+    arrange(Season, DateTime) |> # nolint: unmatched_fun
+    group_by(Season) |> # nolint: unmatched_fun
+    mutate( # nolint: unmatched_fun
+      is_night = Daylight_flag == 0, # nolint: object_name
+      block_id = cumsum(is_night != lag(is_night, default = FALSE)) # nolint: object_name
+    ) |>
+    filter(is_night) |>
+    group_by(Season, block_id) |> # nolint: object_name
+    summarise( # nolint: unmatched_fun
       xmin = min(DateTime) - minutes(30),
       xmax = max(DateTime) + minutes(30),
       .groups = "drop"
@@ -69,9 +88,9 @@ get_night_rects <- function(data) {
 
 # Shorthand geom for night shading (drawn first so it sits behind all data)
 night_rect <- function(night_df) {
-  geom_rect(
+  geom_rect( # nolint: unmatched_fun
     data        = night_df,
-    aes(xmin = xmin, xmax = xmax, ymin = -Inf, ymax = Inf),
+    aes(xmin = xmin, xmax = xmax, ymin = -Inf, ymax = Inf), # nolint: unmatched_fun, object_name
     fill        = "grey80",
     alpha       = 0.45,
     inherit.aes = FALSE
@@ -88,7 +107,7 @@ season_colors <- c(Winter = "#4575b4", Spring = "#4dac26",
 # Data Import & Preparation
 
 ```{r load-data, message=FALSE}
-df <- read_csv("Diel_v9_results_allseasons.csv") %>%
+df <- read_csv("Diel_v9_results_allseasons.csv") |>
   mutate(
     DateTime = mdy_hm(DateTime),
     Season   = factor(Season, levels = season_levels)
@@ -107,10 +126,10 @@ night_df <- get_night_rects(df)
 
 # Subsample observed data to one point every four hours (first point of each season
 # is always included; row_number() %% 4 == 1 picks rows 1, 5, 9, … per season)
-obs_subsample <- df %>%
-  group_by(Season) %>%
-  arrange(DateTime) %>%
-  filter(row_number() %% 4 == 1) %>%
+obs_subsample <- df |>
+  group_by(Season) |>
+  arrange(DateTime) |>
+  filter(row_number() %% 4 == 1) |>
   ungroup()
 ```
 
@@ -124,42 +143,45 @@ num_params <- c(
   "KO2_m_d", "k600_m_d", "CO2flux_mmol_m2_d",
   "CO2aq_mgL", "HCO3_mgL", "CO3_mgL", "DIC_mgL",
   "d13C_DIC_measured", "d13C_DIC_modeled", "d13C_residual",
-  "d13C_CO2aq_eq", "d13C_HCO3_eq"
+  "d13C_CO2aq_eq", "d13C_HCO3_eq",
+  "SIc"
 )
 
-# Human-readable axis / title labels
-param_labels <- c(
+# Human-readable axis labels — uses plotmath expression() for sub/superscripts,
+# which renders correctly on all R graphics devices including HTML notebooks.
+param_labels <- list(
   Temperature_C          = "Temperature (°C)",
   pH_measured            = "pH (measured)",
   pH_modeled             = "pH (modeled)",
-  pCO2_uatm              = "pCO₂ (μatm)",
+  pCO2_uatm              = expression(pCO[2]~"(μatm)"),
   Ca_measured_mgL        = "Ca (mg/L)",
   Na_measured_mgL        = "Na (mg/L)",
   Cl_measured_mgL        = "Cl (mg/L)",
-  SI_Calcite             = "SI Calcite",
-  PAR_Wm2                = "PAR (W/m²)",
-  GPP_observed_mgO2Lh    = "GPP observed (mgO₂/L/h)",
-  GPP_modeled_mgO2Lh     = "GPP modeled (mgO₂/L/h)",
-  ER_observed_mgO2Lh     = "ER observed (mgO₂/L/h)",
-  ER_modeled_mgO2Lh      = "ER modeled (mgO₂/L/h)",
-  NEP_mgO2Lh             = "NEP (mgO₂/L/h)",
-  KO2_m_d                = "KO₂ (m/d)",
-  k600_m_d               = "k₆₀₀ (m/d)",
-  CO2flux_mmol_m2_d      = "CO₂ flux (mmol/m²/d)",
-  CO2aq_mgL              = "CO₂ aq (mg/L)",
-  HCO3_mgL               = "HCO₃⁻ (mg/L)",
-  CO3_mgL                = "CO₃²⁻ (mg/L)",
+  SI_Calcite             = "SI Calcite (modeled)",
+  SIc                    = "SI Calcite (measured)",
+  PAR_Wm2                = expression("PAR (W/m"^2*")"),
+  GPP_observed_mgO2Lh    = expression("GPP observed (mg"*O[2]*"/L/h)"),
+  GPP_modeled_mgO2Lh     = expression("GPP modeled (mg"*O[2]*"/L/h)"),
+  ER_observed_mgO2Lh     = expression("ER observed (mg"*O[2]*"/L/h)"),
+  ER_modeled_mgO2Lh      = expression("ER modeled (mg"*O[2]*"/L/h)"),
+  NEP_mgO2Lh             = expression("NEP (mg"*O[2]*"/L/h)"),
+  KO2_m_d                = expression(KO[2]~"(m/d)"),
+  k600_m_d               = expression(k[600]~"(m/d)"),
+  CO2flux_mmol_m2_d      = expression(CO[2]~"flux (mmol/m"^2*"/d)"),
+  CO2aq_mgL              = expression(CO[2]~"aq (mg/L)"),
+  HCO3_mgL               = expression(HCO[3]^"-"~"(mg/L)"),
+  CO3_mgL                = expression(CO[3]^"2-"~"(mg/L)"),
   DIC_mgL                = "DIC (mg/L)",
-  d13C_DIC_measured      = "δ¹³C DIC measured (‰)",
-  d13C_DIC_modeled       = "δ¹³C DIC modeled (‰)",
-  d13C_residual          = "δ¹³C residual (‰)",
-  d13C_CO2aq_eq          = "δ¹³C CO₂aq eq (‰)",
-  d13C_HCO3_eq           = "δ¹³C HCO₃⁻ eq (‰)"
+  d13C_DIC_measured      = expression(delta^13*"C DIC measured (‰)"),
+  d13C_DIC_modeled       = expression(delta^13*"C DIC modeled (‰)"),
+  d13C_residual          = expression(delta^13*"C residual (‰)"),
+  d13C_CO2aq_eq          = expression(delta^13*"C"~CO[2]~"aq eq (‰)"),
+  d13C_HCO3_eq           = expression(delta^13*"C"~HCO[3]^"-"~"eq (‰)")
 )
 
 plabel <- function(p) {
-  lbl <- param_labels[p]
-  if (is.na(lbl)) p else unname(lbl)
+  lbl <- param_labels[[p]]
+  if (is.null(lbl)) p else lbl
 }
 
 # Observed / modeled column pairs (used for combined time-series & stat tests)
@@ -172,17 +194,17 @@ obs_mod_pairs <- list(
   GPP = list(
     obs   = "GPP_observed_mgO2Lh",
     mod   = "GPP_modeled_mgO2Lh",
-    label = "GPP (mgO₂/L/h)"
+    label = expression("GPP (mg"*O[2]*"/L/h)")
   ),
   ER = list(
     obs   = "ER_observed_mgO2Lh",
     mod   = "ER_modeled_mgO2Lh",
-    label = "ER (mgO₂/L/h)"
+    label = expression("ER (mg"*O[2]*"/L/h)")
   ),
   d13C_DIC = list(
     obs   = "d13C_DIC_measured",
     mod   = "d13C_DIC_modeled",
-    label = "δ¹³C DIC (‰)"
+    label = expression(delta^13*"C DIC (‰)")
   )
 )
 
@@ -190,7 +212,7 @@ obs_mod_pairs <- list(
 combined_cols <- unlist(lapply(obs_mod_pairs, function(x) c(x$obs, x$mod)))
 
 # Special-case parameters with bespoke plots
-special_ts <- c("pCO2_uatm", "Ca_measured_mgL", "SI_Calcite", "CO2flux_mmol_m2_d")
+special_ts <- c("pCO2_uatm", "Ca_measured_mgL", "SI_Calcite", "SIc", "CO2flux_mmol_m2_d")
 
 # Remaining parameters get a standard standalone time-series
 standalone_ts <- setdiff(num_params, c(combined_cols, special_ts))
@@ -209,9 +231,8 @@ for (p in num_params) {
     scale_fill_manual(values = season_colors, drop = FALSE) +
     facet_wrap(~Season, scales = "free_y", drop = FALSE) +
     labs(
-      title = paste("Histogram —", plabel(p)),
-      x     = plabel(p),
-      y     = "Count"
+      x = plabel(p),
+      y = "Count"
     ) +
     theme_pub +
     theme(legend.position = "none")
@@ -230,9 +251,8 @@ for (p in num_params) {
     geom_boxplot(outlier.size = 0.9, outlier.alpha = 0.4, linewidth = 0.5) +
     scale_fill_manual(values = season_colors, drop = FALSE) +
     labs(
-      title = paste("Boxplot —", plabel(p)),
-      x     = "Season",
-      y     = plabel(p)
+      x = "Season",
+      y = plabel(p)
     ) +
     theme_pub +
     theme(legend.position = "none")
@@ -251,13 +271,13 @@ obs_mod_fill <- c(Observed = "#e31a1c", Modeled = "#1f78b4")
 for (nm in names(obs_mod_pairs)) {
   pair <- obs_mod_pairs[[nm]]
 
-  df_long <- df %>%
-    select(Season, all_of(c(pair$obs, pair$mod))) %>%
+  df_long <- df |>
+    select(Season, all_of(c(pair$obs, pair$mod))) |>
     pivot_longer(
       cols      = c(all_of(pair$obs), all_of(pair$mod)),
       names_to  = "Type",
       values_to = "Value"
-    ) %>%
+    ) |>
     mutate(Type = factor(
       case_when(Type == pair$obs ~ "Observed", TRUE ~ "Modeled"),
       levels = c("Observed", "Modeled")
@@ -272,9 +292,8 @@ for (nm in names(obs_mod_pairs)) {
     ) +
     scale_fill_manual(values = obs_mod_fill, name = NULL) +
     labs(
-      title = paste("Boxplot —", pair$label, "(Observed vs. Modeled)"),
-      x     = "Season",
-      y     = pair$label
+      x = "Season",
+      y = pair$label
     ) +
     theme_pub +
     theme(legend.position = "bottom")
@@ -292,10 +311,10 @@ Descriptive statistics for each parameter by season and combined across all seas
 
 ```{r summary-stats}
 # Per-season stats
-by_season <- df %>%
-  select(Season, all_of(num_params)) %>%
-  pivot_longer(-Season, names_to = "Parameter", values_to = "Value") %>%
-  group_by(Parameter, Season) %>%
+by_season <- df |>
+  select(Season, all_of(num_params)) |>
+  pivot_longer(-Season, names_to = "Parameter", values_to = "Value") |>
+  group_by(Parameter, Season) |>
   summarise(
     n      = sum(!is.na(Value)),
     Mean   = mean(Value,   na.rm = TRUE),
@@ -307,10 +326,10 @@ by_season <- df %>%
   )
 
 # All-seasons combined
-all_comb <- df %>%
-  select(all_of(num_params)) %>%
-  pivot_longer(everything(), names_to = "Parameter", values_to = "Value") %>%
-  group_by(Parameter) %>%
+all_comb <- df |>
+  select(all_of(num_params)) |>
+  pivot_longer(everything(), names_to = "Parameter", values_to = "Value") |>
+  group_by(Parameter) |>
   summarise(
     n      = sum(!is.na(Value)),
     Mean   = mean(Value,   na.rm = TRUE),
@@ -319,25 +338,25 @@ all_comb <- df %>%
     Min    = min(Value,    na.rm = TRUE),
     Max    = max(Value,    na.rm = TRUE),
     .groups = "drop"
-  ) %>%
+  ) |>
   mutate(Season = "All")
 
-summary_tbl <- bind_rows(by_season, all_comb) %>%
-  mutate(Season = factor(Season, levels = c(season_levels, "All"))) %>%
-  arrange(Parameter, Season) %>%
+summary_tbl <- bind_rows(by_season, all_comb) |>
+  mutate(Season = factor(Season, levels = c(season_levels, "All"))) |>
+  arrange(Parameter, Season) |>
   mutate(across(where(is.numeric) & !n, ~round(., 4)))
 
-summary_tbl %>%
+summary_tbl |>
   kable(
     caption   = "Descriptive statistics by season and combined (All)",
     col.names = c("Parameter", "Season", "n", "Mean", "SD",
                   "Median", "Min", "Max")
-  ) %>%
+  ) |>
   kable_styling(
     bootstrap_options = c("striped", "hover", "condensed"),
     full_width = FALSE,
     font_size  = 12
-  ) %>%
+  ) |>
   scroll_box(height = "500px")
 ```
 
@@ -410,11 +429,11 @@ test_results <- imap_dfr(obs_mod_pairs, function(pair, nm) {
   }
 })
 
-test_results %>%
+test_results |>
   kable(
     caption = "Paired statistical tests — Observed vs. Modeled (α = 0.05)",
     digits  = 4
-  ) %>%
+  ) |>
   kable_styling(
     bootstrap_options = c("striped", "hover", "condensed"),
     full_width = FALSE
@@ -458,9 +477,8 @@ for (nm in names(obs_mod_pairs)) {
     ) +
     facet_wrap(~Season, scales = "free_x") +
     labs(
-      title = paste("Time Series —", pair$label),
-      x     = NULL,
-      y     = pair$label
+      x = NULL,
+      y = pair$label
     ) +
     theme_pub +
     theme(
@@ -471,6 +489,70 @@ for (nm in names(obs_mod_pairs)) {
   print(pl)
   save_plot(pl, paste0("ts_", nm), width = 14, height = 6)
 }
+```
+
+## GPP, ER, and NEP — combined seasonal panels
+
+GPP (green) and ER (red) show modeled lines with subsampled observed open circles.
+NEP (blue) has a single measured series shown as a line.
+
+```{r ts-metabolism, fig.width=14, fig.height=6}
+metab_colors <- c(GPP = "#33a02c", ER = "#e31a1c", NEP = "#1f78b4")
+
+# Long format for modeled lines (GPP, ER) and the single NEP series
+df_metab_lines <- df |>
+  select(Season, DateTime,
+         GPP = GPP_modeled_mgO2Lh,
+         ER  = ER_modeled_mgO2Lh,
+         NEP = NEP_mgO2Lh) |>
+  pivot_longer(c(GPP, ER, NEP),
+               names_to  = "Variable",
+               values_to = "Value") |>
+  mutate(Variable = factor(Variable, levels = c("GPP", "ER", "NEP")))
+
+# Long format for subsampled observed open symbols (GPP and ER only)
+df_metab_pts <- obs_subsample |>
+  select(Season, DateTime,
+         GPP = GPP_observed_mgO2Lh,
+         ER  = ER_observed_mgO2Lh) |>
+  pivot_longer(c(GPP, ER),
+               names_to  = "Variable",
+               values_to = "Value") |>
+  mutate(Variable = factor(Variable, levels = c("GPP", "ER", "NEP")))
+
+p_metab <- ggplot() +
+  night_rect(night_df) +
+  geom_line(
+    data      = df_metab_lines,
+    aes(x = DateTime, y = Value, colour = Variable),
+    linewidth = 0.8
+  ) +
+  geom_point(
+    data   = df_metab_pts,
+    aes(x = DateTime, y = Value, colour = Variable),
+    shape  = 1,      # open circle
+    size   = 2.5,
+    stroke = 0.8
+  ) +
+  scale_colour_manual(values = metab_colors, name = NULL) +
+  scale_x_datetime(
+    date_labels = "%b %d\n%H:%M",
+    date_breaks = "4 hours",
+    guide       = guide_axis(check.overlap = TRUE)
+  ) +
+  facet_wrap(~Season, scales = "free_x") +
+  labs(
+    x = NULL,
+    y = expression("mg"*O[2]*"/L/h")
+  ) +
+  theme_pub +
+  theme(
+    legend.position = "bottom",
+    axis.text.x     = element_text(angle = 45, hjust = 1)
+  )
+
+print(p_metab)
+save_plot(p_metab, "ts_GPP_ER_NEP", width = 14, height = 6)
 ```
 
 ## Standalone parameters
@@ -488,9 +570,8 @@ for (p in standalone_ts) {
     ) +
     facet_wrap(~Season, scales = "free_x") +
     labs(
-      title = paste("Time Series —", plabel(p)),
-      x     = NULL,
-      y     = plabel(p)
+      x = NULL,
+      y = plabel(p)
     ) +
     theme_pub +
     theme(
@@ -507,9 +588,9 @@ for (p in standalone_ts) {
 
 ```{r ts-pco2, fig.width=12, fig.height=6}
 # Per-season annotation data frame (label appears at start of each season's data)
-ann_pco2 <- df %>%
-  group_by(Season) %>%
-  summarise(DateTime = min(DateTime, na.rm = TRUE), .groups = "drop") %>%
+ann_pco2 <- df |>
+  group_by(Season) |>
+  summarise(DateTime = min(DateTime, na.rm = TRUE), .groups = "drop") |>
   mutate(y = 425, label = "atmospheric = 425 ppmv")
 
 p_pco2 <- ggplot(df, aes(x = DateTime, y = pCO2_uatm, colour = Season)) +
@@ -534,9 +615,8 @@ p_pco2 <- ggplot(df, aes(x = DateTime, y = pCO2_uatm, colour = Season)) +
   ) +
   facet_wrap(~Season, scales = "free_x") +
   labs(
-    title = "Time Series — pCO₂ (μatm)",
-    x     = NULL,
-    y     = "pCO₂ (μatm)"
+    x = NULL,
+    y = expression(pCO[2]~"(μatm)")
   ) +
   theme_pub +
   theme(
@@ -552,28 +632,45 @@ save_plot(p_pco2, "ts_pCO2_uatm", width = 12, height = 6)
 
 ```{r ts-ca-si, fig.width=12, fig.height=6}
 ca_rng <- range(df$Ca_measured_mgL, na.rm = TRUE)
-si_rng <- range(df$SI_Calcite,      na.rm = TRUE)
+# Expand SI range to cover both modeled (SI_Calcite) and measured (SIc) values
+si_rng <- range(c(df$SI_Calcite, df$SIc), na.rm = TRUE)
 
 # Linear transforms: SI <-> Ca primary-axis scale
 si_to_ca <- function(x) (x - si_rng[1]) / diff(si_rng) * diff(ca_rng) + ca_rng[1]
 ca_to_si <- function(x) (x - ca_rng[1]) / diff(ca_rng) * diff(si_rng) + si_rng[1]
 
-df_ca_si <- df %>%
-  mutate(SI_scaled = si_to_ca(SI_Calcite))
+df_ca_si <- df |>
+  mutate(
+    SI_scaled  = si_to_ca(SI_Calcite),
+    SIc_scaled = si_to_ca(SIc)
+  )
+
+# Subsampled observed SIc points (every 4 h, matching obs_subsample cadence)
+df_ca_si_pts <- obs_subsample |>
+  mutate(SIc_scaled = si_to_ca(SIc))
 
 p_ca_si <- ggplot(df_ca_si, aes(x = DateTime)) +
   night_rect(night_df) +
-  geom_line(aes(y = Ca_measured_mgL, colour = "Ca (mg/L)"),
+  geom_line(aes(y = Ca_measured_mgL,   colour = "Ca (mg/L)"),
             linewidth = 0.7) +
-  geom_line(aes(y = SI_scaled,       colour = "SI Calcite"),
+  geom_line(aes(y = SI_scaled,         colour = "SI Calcite (modeled)"),
             linewidth = 0.7, linetype = "dashed") +
+  geom_point(
+    data   = df_ca_si_pts,
+    aes(y = SIc_scaled, colour = "SI Calcite (measured)"),
+    shape  = 1, size = 2.5, stroke = 0.8
+  ) +
   scale_y_continuous(
     name     = "Ca (mg/L)",
     sec.axis = sec_axis(~ca_to_si(.), name = "SI Calcite")
   ) +
   scale_colour_manual(
-    values = c("Ca (mg/L)" = "#1b7837", "SI Calcite" = "#762a83"),
-    name   = NULL
+    values = c(
+      "Ca (mg/L)"             = "#1b7837",
+      "SI Calcite (modeled)"  = "#762a83",
+      "SI Calcite (measured)" = "#9970ab"
+    ),
+    name = NULL
   ) +
   scale_x_datetime(
     date_labels = "%b %d\n%H:%M",
@@ -581,10 +678,7 @@ p_ca_si <- ggplot(df_ca_si, aes(x = DateTime)) +
     guide       = guide_axis(check.overlap = TRUE)
   ) +
   facet_wrap(~Season, scales = "free_x") +
-  labs(
-    title = "Time Series — Ca (mg/L) and SI Calcite",
-    x     = NULL
-  ) +
+  labs(x = NULL) +
   theme_pub +
   theme(
     legend.position    = "bottom",
@@ -602,15 +696,15 @@ save_plot(p_ca_si, "ts_Ca_SI_Calcite", width = 12, height = 6)
 ## CO₂ flux — outgassing and ingassing areas
 
 ```{r ts-co2flux, fig.width=12, fig.height=6}
-df_flux <- df %>%
+df_flux <- df |>
   mutate(
     flux_pos = pmax(CO2flux_mmol_m2_d, 0),   # above zero (outgassing)
     flux_neg = pmin(CO2flux_mmol_m2_d, 0)    # below zero (ingassing)
   )
 
 # Per-season mid-point and label y-positions
-ann_flux <- df_flux %>%
-  group_by(Season) %>%
+ann_flux <- df_flux |>
+  group_by(Season) |>
   summarise(
     DateTime = mean(DateTime,            na.rm = TRUE),
     y_outgas = max(CO2flux_mmol_m2_d,   na.rm = TRUE) * 0.6,
@@ -658,9 +752,8 @@ p_flux <- ggplot(df_flux, aes(x = DateTime)) +
   ) +
   facet_wrap(~Season, scales = "free_x") +
   labs(
-    title = "Time Series — CO₂ Flux (mmol/m²/d)",
-    x     = NULL,
-    y     = "CO₂ flux (mmol/m²/d)"
+    x = NULL,
+    y = expression(CO[2]~"flux (mmol/m"^2*"/d)")
   ) +
   theme_pub +
   theme(
