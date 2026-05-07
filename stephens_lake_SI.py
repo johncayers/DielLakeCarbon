@@ -46,15 +46,16 @@ DB_PATH  = _HERE / "phreeqc.dat"
 CSV_PATH = _HERE / "StephensLake_AllSeasons_Chemistry.csv"
 OUT_DIR  = _HERE
 
-MINERALS = ["Calcite", "Dolomite", "Goethite", "Pyrolusite"]
+MINERALS = ["Calcite", "Dolomite", "Goethite", "Pyrolusite", "Hydroxyapatite"]
 SEASONS  = ["Fall", "Winter", "Spring", "Summer"]
 
 # Visual style for each mineral in the time-series plots
 MINERAL_STYLE: dict[str, dict] = {
-    "Calcite":    {"color": "#1f77b4", "ls": "-",  "lw": 1.8},
-    "Dolomite":   {"color": "#ff7f0e", "ls": "--", "lw": 1.8},
-    "Goethite":   {"color": "#8B0000", "ls": "-.", "lw": 1.8},
-    "Pyrolusite": {"color": "#9467bd", "ls": ":",  "lw": 2.2},
+    "Calcite":        {"color": "#1f77b4", "ls": "-",  "lw": 1.8},
+    "Dolomite":       {"color": "#ff7f0e", "ls": "--", "lw": 1.8},
+    "Goethite":       {"color": "#8B0000", "ls": "-.", "lw": 1.8},
+    "Pyrolusite":     {"color": "#9467bd", "ls": ":",  "lw": 2.2},
+    "Hydroxyapatite": {"color": "#2ca02c", "ls": (0,(3,1,1,1)), "lw": 1.8},
 }
 
 # Molecular weights (g/mol) for unit-conversion comments in build_phreeqc_input
@@ -64,6 +65,18 @@ _MW = {
     "NO3":   62.004,   # NO3-
     "N":     14.007,   # N element (phreeqc.dat gfw_formula for N(5))
     "C":     12.011,   # C element
+    "HCO3":  61.016,   # HCO3- (phreeqc.dat gfw_formula for C / C(4))
+}
+
+# Raw CSV columns required to compute each mineral's SI.
+# If any listed column is NaN for a sample, that mineral's SI is set to NaN
+# so it is not plotted for that sample.
+MINERAL_REQUIRED_COLS: dict[str, list[str]] = {
+    "Calcite":        ["Calcium_mg_L-1",   "DIC_mg_L-1"],
+    "Dolomite":       ["Calcium_mg_L-1",   "Magnesium_mg_L-1", "DIC_mg_L-1"],
+    "Goethite":       ["Iron_ug_L-1",      "DO_mg_L-1"],
+    "Pyrolusite":     ["Manganese_ug_L-1", "DO_mg_L-1"],
+    "Hydroxyapatite": ["Calcium_mg_L-1",   "Phosphorus_mg_L-1"],
 }
 
 
@@ -118,7 +131,7 @@ def build_phreeqc_input(row: pd.Series, sol_num: int = 1) -> str:
       S(6)      SO4           96.06        Sulfate_mg_L (SO4)   none needed
       N(5)      N             14.007       Nitrate_mg_L (NO3)   × 14.007/62.004
       Si        SiO2          60.084       Silicon_mg_L (Si)    × 60.084/28.086
-      C(4)      HCO3          61.017       DIC_mg_L (C)         override → mmol/kgw
+      C(4)      HCO3          61.016       DIC_mg_L (C)         × 61.016/12.011
       O(0)      O             15.999       DO_mg_L (O2)         none needed *
 
     * O(0): PHREEQC divides input by MW_O = 15.999 g/mol.
@@ -150,7 +163,7 @@ def build_phreeqc_input(row: pd.Series, sol_num: int = 1) -> str:
     Si_as_SiO2 = Si_el * (_MW["SiO2"] / _MW["Si"])      # → mg/L as SiO2
     Fe_mg      = max(Fe_ug / 1_000.0, 1e-9)             # µg/L → mg/L
     Mn_mg      = max(Mn_ug / 1_000.0, 1e-9)             # µg/L → mg/L
-    DIC_mmol   = DIC   / _MW["C"]                       # mg/L as C → mmol/kgw
+    DIC_as_HCO3 = DIC  * (_MW["HCO3"] / _MW["C"])       # mg/L as C → mg/L as HCO3
 
     # ── Inlined PHREEQC template ──────────────────────────────────────────────
     return (
@@ -170,11 +183,11 @@ def build_phreeqc_input(row: pd.Series, sol_num: int = 1) -> str:
         f"    Si      {Si_as_SiO2:.6f}\n"
         f"    Fe      {Fe_mg:.9f}\n"
         f"    Mn      {Mn_mg:.9f}\n"
-        f"    C(4)    {DIC_mmol:.8f}    mmol/kgw\n"
+        f"    C(4)    {DIC_as_HCO3:.6f}\n"
         f"    O(0)    {DO:.6f}\n"
         f"\n"
         f"SELECTED_OUTPUT\n"
-        f"    -si     Calcite Dolomite Goethite Pyrolusite\n"
+        f"    -si     Calcite Dolomite Goethite Pyrolusite Hydroxyapatite\n"
         f"\n"
         f"END\n"
     )
@@ -220,8 +233,8 @@ def run_iphreeqc(input_str: str, db_path: Path) -> dict[str, float]:
 # ─────────────────────────────────────────────────────────────────────────────
 def calculate_si(df: pd.DataFrame, db_path: Path) -> pd.DataFrame:
     """
-    Run IPhreeqc for every row in *df* and append four SI columns
-    (Calcite, Dolomite, Goethite, Pyrolusite).
+    Run IPhreeqc for every row in *df* and append five SI columns
+    (Calcite, Dolomite, Goethite, Pyrolusite, Hydroxyapatite).
 
     Returns the original DataFrame extended with the SI columns.
     """
@@ -236,6 +249,10 @@ def calculate_si(df: pd.DataFrame, db_path: Path) -> pd.DataFrame:
         except Exception as exc:
             warnings.warn(f"Row {idx} ({row.get('DATETIME', '?')}): {exc}")
             si = {m: np.nan for m in MINERALS}
+        # Mask SI to NaN where a required species was not measured
+        for mineral, req_cols in MINERAL_REQUIRED_COLS.items():
+            if any(pd.isna(row.get(col)) for col in req_cols):
+                si[mineral] = np.nan
         si["_idx"] = idx
         records.append(si)
 
@@ -263,45 +280,66 @@ def export_csv(df: pd.DataFrame, out_dir: Path) -> None:
 # ─────────────────────────────────────────────────────────────────────────────
 def plot_panel(df: pd.DataFrame, out_dir: Path) -> None:
     """
-    Produce a 2×2 panel plot: one subplot per season, each showing the diel
-    time series of SI for all four minerals.  Saved as PNG (150 dpi) and SVG.
+    2x2 panel plot: one subplot per season, each showing the diel time series
+    of SI for all five minerals.  A single shared legend sits below the panels.
+    Saved as PNG (150 dpi) and SVG.
 
-    The horizontal line at SI = 0 marks the mineral–solution equilibrium
-    boundary (SI > 0 → supersaturated; SI < 0 → undersaturated).
+    The horizontal line at SI = 0 marks the mineral-solution equilibrium
+    boundary (SI > 0 supersaturated; SI < 0 undersaturated).
     """
     fig, axes = plt.subplots(2, 2, figsize=(14, 10))
 
+    # Shared y-axis range across all seasons
+    si_vals = df[MINERALS].to_numpy(dtype=float)
+    finite  = si_vals[np.isfinite(si_vals)]
+    if finite.size:
+        pad   = 0.5
+        y_min = finite.min() - pad
+        y_max = finite.max() + pad
+    else:
+        y_min, y_max = -5.0, 5.0
+
+    legend_handles = []
     for ax, season in zip(axes.flat, SEASONS):
         sub = df[df["Season"] == season].sort_values("DATETIME")
         if sub.empty:
-            ax.set_title(f"{season} — no data", fontsize=12)
+            ax.set_title(f"{season} - no data", fontsize=12)
             continue
 
         for mineral in MINERALS:
             st = MINERAL_STYLE[mineral]
-            ax.plot(
+            line, = ax.plot(
                 sub["DATETIME"], sub[mineral],
                 color=st["color"], linestyle=st["ls"], linewidth=st["lw"],
                 marker="o", markersize=4, label=mineral,
             )
+            if season == SEASONS[0]:
+                legend_handles.append(line)
 
-        ax.axhline(0, color="k", lw=0.9, alpha=0.55, label="Equilibrium (SI = 0)")
+        ax.axhline(0, color="k", lw=0.9, alpha=0.55)
+        ax.set_ylim(y_min, y_max)
         ax.set_title(season, fontsize=13, fontweight="bold")
         ax.set_ylabel("Saturation Index", fontsize=10)
         ax.xaxis.set_major_formatter(mdates.DateFormatter("%m/%d\n%H:%M"))
         ax.xaxis.set_major_locator(mdates.AutoDateLocator(minticks=3, maxticks=7))
         ax.tick_params(axis="x", labelsize=8)
         ax.grid(True, alpha=0.3, lw=0.5)
-        ax.legend(fontsize=8, loc="best", framealpha=0.85)
-
-    fig.suptitle(
-        "Stephens Lake — Mineral Saturation Indices\nDiel Time Series by Season",
-        fontsize=14, fontweight="bold",
-    )
-    fig.tight_layout(rect=[0, 0, 1, 0.95])
 
     for ax in axes.flat:
         plt.setp(ax.xaxis.get_majorticklabels(), rotation=30, ha="right")
+
+    # Reserve space at the bottom for the shared legend, then place it
+    fig.tight_layout(rect=[0, 0.06, 1, 1])
+    fig.legend(
+        handles=legend_handles,
+        labels=MINERALS,
+        loc="lower center",
+        bbox_to_anchor=(0.5, 0.0),
+        ncol=len(MINERALS),
+        fontsize=10,
+        framealpha=0.9,
+        edgecolor="0.7",
+    )
 
     for ext in ("png", "svg"):
         fpath = out_dir / f"Stephens_Lake_SI_panel.{ext}"
