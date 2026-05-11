@@ -43,8 +43,8 @@ except ImportError as exc:
 # ─────────────────────────────────────────────────────────────────────────────
 _HERE    = Path(__file__).parent
 DB_PATH  = _HERE / "phreeqc.dat"
-CSV_PATH = _HERE / "StephensLake_AllSeasons_Chemistry.csv"
-OUT_DIR  = _HERE
+CSV_PATH = _HERE / "input" / "StephensLake_AllSeasons_Chemistry.csv"
+OUT_DIR  = _HERE / "output"
 
 MINERALS = ["Calcite", "Dolomite", "Goethite", "Pyrolusite", "Hydroxyapatite"]
 SEASONS  = ["Fall", "Winter", "Spring", "Summer"]
@@ -238,7 +238,7 @@ def calculate_si(df: pd.DataFrame, db_path: Path) -> pd.DataFrame:
 
     Returns the original DataFrame extended with the SI columns.
     """
-    records: list[dict] = []
+    records: list[dict[str, object]] = []
     n = len(df)
     for i, (idx, row) in enumerate(df.iterrows(), start=1):
         if i % 5 == 0 or i == n:
@@ -253,8 +253,7 @@ def calculate_si(df: pd.DataFrame, db_path: Path) -> pd.DataFrame:
         for mineral, req_cols in MINERAL_REQUIRED_COLS.items():
             if any(pd.isna(row.get(col)) for col in req_cols):
                 si[mineral] = np.nan
-        si["_idx"] = idx
-        records.append(si)
+        records.append({**si, "_idx": idx})
 
     print()  # newline after in-place progress counter
     si_df = pd.DataFrame(records).set_index("_idx")
@@ -329,7 +328,7 @@ def plot_panel(df: pd.DataFrame, out_dir: Path) -> None:
         plt.setp(ax.xaxis.get_majorticklabels(), rotation=30, ha="right")
 
     # Reserve space at the bottom for the shared legend, then place it
-    fig.tight_layout(rect=[0, 0.06, 1, 1])
+    fig.tight_layout(rect=(0, 0.06, 1, 1))
     fig.legend(
         handles=legend_handles,
         labels=MINERALS,
