@@ -2,12 +2,13 @@ name: diel-lake-carbon
 channels:
   - conda-forge
 dependencies:
-  - python=3.10
+  - python=3.14
   - numpy
   - pandas
   - matplotlib
   - notebook
   - jupyterlab
   - ipywidgets
-  - phreeqc
-  - iphreeqc
+  - pip
+  - pip:
+      - phreeqpy
