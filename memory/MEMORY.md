@@ -1,0 +1,3 @@
+- [DielLakeCarbon Project](projects/diel_lake_carbon.md) — diel C isotope model for Stephens Lake, TN; Python + Phreeqc
+- [Glossary](context/glossary.md) — geochemical and modeling terms (GPP, ER, DIC, SI, Phreeqc, GWB, etc.)
+- [User Profile](context/user.md) — John Ayers, Vanderbilt researcher; Python + R Tidyverse
