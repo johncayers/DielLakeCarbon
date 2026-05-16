@@ -451,7 +451,7 @@ window.Quarto = {
 </tr>
 </tbody>
 </table>
-<div id="2efb9506" class="cell" data-execution_count="12">
+<div id="2efb9506" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Uncomment to install dependencies</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="co"># !pip install numpy pandas matplotlib scipy phreeqpy astral ipykernel</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
@@ -459,7 +459,7 @@ window.Quarto = {
 </section>
 <section id="step-1-import-libraries" class="level2">
 <h2 class="anchored" data-anchor-id="step-1-import-libraries">Step 1 — Import libraries</h2>
-<div id="539988ab" class="cell" data-execution_count="1">
+<div id="539988ab" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
@@ -480,7 +480,7 @@ window.Quarto = {
 <section id="step-2-configuration" class="level2">
 <h2 class="anchored" data-anchor-id="step-2-configuration">Step 2 — Configuration</h2>
 <p>Set site coordinates, atmospheric constants, and file paths.</p>
-<div id="18c60139" class="cell" data-execution_count="14">
+<div id="18c60139" class="cell" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>LATITUDE      <span class="op">=</span> <span class="fl">35.939311</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>LONGITUDE     <span class="op">=</span> <span class="op">-</span><span class="fl">87.015833</span></span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>TZ_OFF        <span class="op">=</span> <span class="op">-</span><span class="dv">5</span></span>
@@ -497,7 +497,7 @@ window.Quarto = {
 <section id="step-3-isotope-enabled-phreeqc-database" class="level2">
 <h2 class="anchored" data-anchor-id="step-3-isotope-enabled-phreeqc-database">Step 3 — Isotope-enabled PHREEQC database</h2>
 <p>Defines <code>[13C]</code> as a separate thermodynamic component with temperature-dependent fractionation encoded in the analytic log <em>K</em> coefficients. Includes Calcite phase for saturation index calculation using measured Ca²⁺. Na⁺ handles charge balance; Ca²⁺ and Cl⁻ are fixed at measured values.</p>
-<div id="99b20bd8" class="cell" data-execution_count="15">
+<div id="99b20bd8" class="cell" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>PHREEQC_DB <span class="op">=</span> <span class="st">"""</span></span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="st">SOLUTION_MASTER_SPECIES</span></span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="st">H        H+             -1.     H               1.008</span></span>
@@ -597,7 +597,7 @@ window.Quarto = {
 <section id="step-4-helper-functions" class="level2">
 <h2 class="anchored" data-anchor-id="step-4-helper-functions">Step 4 — Helper functions</h2>
 <p>Physical and geochemical utilities including Schmidt numbers (Wanninkhof, 2014), Henry’s law (Weiss, 1974), solar PAR (Kasten &amp; Young, 1989), isotope conversions, and the full PHREEQC speciation wrapper that passes measured Ca²⁺, Na⁺, and Cl⁻ to each solution.</p>
-<div id="a4f033d7" class="cell" data-execution_count="16">
+<div id="a4f033d7" class="cell" data-execution_count="8">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> Sc_o2(T):</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Schmidt number for O₂ in freshwater (Wanninkhof, 2014)."""</span></span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="fl">1745.1</span> <span class="op">-</span> <span class="fl">124.34</span><span class="op">*</span>T <span class="op">+</span> <span class="fl">4.8055</span><span class="op">*</span>T<span class="op">**</span><span class="dv">2</span> <span class="op">-</span> <span class="fl">0.10115</span><span class="op">*</span>T<span class="op">**</span><span class="dv">3</span> <span class="op">+</span> <span class="fl">0.00086842</span><span class="op">*</span>T<span class="op">**</span><span class="dv">4</span></span>
@@ -739,7 +739,7 @@ window.Quarto = {
 <section id="step-5-load-and-validate-input-data" class="level2">
 <h2 class="anchored" data-anchor-id="step-5-load-and-validate-input-data">Step 5 — Load and validate input data</h2>
 <p>Reads the CSV, renames columns, stores observations for all three calibration targets (δ¹³C-DIC, GPP, ER), and interpolates to hourly resolution.</p>
-<div id="e61cd5f8" class="cell" data-execution_count="17">
+<div id="e61cd5f8" class="cell" data-execution_count="9">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>df_raw <span class="op">=</span> pd.read_csv(CSV_PATH, encoding<span class="op">=</span><span class="st">'utf-8-sig'</span>)</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>df_raw.columns <span class="op">=</span> df_raw.columns.<span class="bu">str</span>.strip()</span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>sample <span class="op">=</span> df_raw[<span class="st">'DateTime'</span>].iloc[<span class="dv">0</span>]</span>
@@ -779,7 +779,7 @@ ER range: [-6.67, -4.41] mg O₂/L/h
 Ca:       [22.0, 23.3] mg/L
 Hourly:   49 points</code></pre>
 </div>
-<div class="cell-output cell-output-display" data-execution_count="17">
+<div class="cell-output cell-output-display" data-execution_count="9">
 <div>
 
 
@@ -1007,7 +1007,7 @@ Hourly:   49 points</code></pre>
 <section id="step-6-solar-geometry-and-par" class="level2">
 <h2 class="anchored" data-anchor-id="step-6-solar-geometry-and-par">Step 6 — Solar geometry and PAR</h2>
 <p>Compute sunrise/sunset and hourly PAR from the clear-sky model.</p>
-<div id="e7d7fc1e" class="cell" data-execution_count="18">
+<div id="e7d7fc1e" class="cell" data-execution_count="10">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>tz  <span class="op">=</span> timezone(timedelta(hours<span class="op">=</span>TZ_OFF))</span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>loc <span class="op">=</span> LocationInfo(<span class="st">"Lake"</span>, <span class="st">"Region"</span>, <span class="st">"UTC"</span>, LATITUDE, LONGITUDE)</span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>sun_info <span class="op">=</span> {}</span>
@@ -1031,7 +1031,7 @@ PAR peak: 260.2 W/m² (1189 µmol/m²/s)</code></pre>
 <section id="step-7-phreeqc-speciation-with-measured-ca²-na-cl" class="level2">
 <h2 class="anchored" data-anchor-id="step-7-phreeqc-speciation-with-measured-ca²-na-cl">Step 7 — PHREEQC speciation with measured Ca²⁺, Na⁺, Cl⁻</h2>
 <p>Pre-compute speciation for all 49 hourly time steps. Na⁺ absorbs the charge-balance residual from unmeasured ions. Ca²⁺ and Cl⁻ are fixed at measured values.</p>
-<div id="7f0b62e6" class="cell" data-execution_count="19">
+<div id="7f0b62e6" class="cell" data-execution_count="11">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>phreeqc <span class="op">=</span> create_phreeqc(OUTPUT_DIR)</span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>spec <span class="op">=</span> []</span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(n):</span>
@@ -1080,7 +1080,7 @@ T_ref:      15.88 °C</code></pre>
 <p><strong>ER</strong> = ER_base × Q₁₀,ER^((T−T_ref)/10) — now temperature-dependent, not constant</p>
 <p><strong>Tri-objective cost</strong>: <span class="math display">\[J = \mathrm{RMSE}(\delta^{13}C) + 0.05 \cdot \mathrm{RMSE}(\mathrm{GPP}) + 1.0 \cdot \mathrm{RMSE}(\mathrm{ER}) + \sum_k \lambda_k \left(\frac{\theta_k - \mu_k}{\sigma_k}\right)^2\]</span></p>
 <p>The weight on ER (1.0) reflects that its observed range (~1.1 mg/L/h) is comparable to the δ¹³C range (~1.4 ‰), so both terms contribute equally to the cost. GPP is down-weighted (0.05) because its range (~30 mg/L/h) is much larger.</p>
-<div id="5762fa2f" class="cell" data-execution_count="20">
+<div id="5762fa2f" class="cell" data-execution_count="12">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># ── Model function ──────────────────────────────────────────────────</span></span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> run_model(pvec):</span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    GPP_max, Ik, Q10_gpp, ER_base, Q10_er, pf, d13c_org, k_gas_iso <span class="op">=</span> pvec</span>
@@ -1168,7 +1168,7 @@ T_ref:      15.88 °C</code></pre>
 <section id="step-9-calibrate-8-parameters" class="level2">
 <h2 class="anchored" data-anchor-id="step-9-calibrate-8-parameters">Step 9 — Calibrate 8 parameters</h2>
 <p>Bounded differential evolution with Gaussian penalty priors. The <code>Q10_ER</code> parameter (new in v9) allows ER to track the diel temperature cycle.</p>
-<div id="1fbae2aa" class="cell" data-execution_count="21">
+<div id="1fbae2aa" class="cell" data-execution_count="13">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Optimising (bounded DE + Bayesian priors) ..."</span>)</span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>bounds <span class="op">=</span> [</span>
 <span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    (<span class="fl">5.0</span>, <span class="fl">50.0</span>),     <span class="co"># GPP_max</span></span>
@@ -1211,7 +1211,7 @@ Optimised (cost = 0.46095):
 <section id="step-10-evaluate-tri-objective-fit" class="level2">
 <h2 class="anchored" data-anchor-id="step-10-evaluate-tri-objective-fit">Step 10 — Evaluate tri-objective fit</h2>
 <p>Compute RMSE and R² for all three targets: δ¹³C-DIC, GPP, and ER.</p>
-<div id="89a40f27" class="cell" data-execution_count="22">
+<div id="89a40f27" class="cell" data-execution_count="14">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>d13C_final, GPP_final, ER_final <span class="op">=</span> run_model(bx)</span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>mod_d13c <span class="op">=</span> np.interp(obs_times.astype(np.float64),</span>
@@ -1245,7 +1245,7 @@ ER:           RMSE = 0.231 mgO₂/L/h, R² = 0.8994</code></pre>
 </section>
 <section id="step-11-export-csv" class="level2">
 <h2 class="anchored" data-anchor-id="step-11-export-csv">Step 11 — Export CSV</h2>
-<div id="4f1cbb65" class="cell" data-execution_count="23">
+<div id="4f1cbb65" class="cell" data-execution_count="15">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> pd.DataFrame({</span>
 <span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">'DateTime'</span>: df[<span class="st">'datetime'</span>], <span class="st">'Temperature_C'</span>: temp,</span>
 <span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">'pH_measured'</span>: df[<span class="st">'pH_meas'</span>].values, <span class="st">'pH_modeled'</span>: pH_mod,</span>
@@ -1279,7 +1279,7 @@ ER:           RMSE = 0.231 mgO₂/L/h, R² = 0.8994</code></pre>
 <section id="step-12-10-panel-diagnostic-figure" class="level2">
 <h2 class="anchored" data-anchor-id="step-12-10-panel-diagnostic-figure">Step 12 — 10-panel diagnostic figure</h2>
 <p>Panels 4 (GPP) and 5 (ER) now both show modelled curves with RMSE and R² statistics. ER panel displays the Q₁₀ temperature-dependent curve instead of a flat line.</p>
-<div id="bf907e1f" class="cell" data-execution_count="24">
+<div id="bf907e1f" class="cell" data-execution_count="17">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># ── 10-panel figure ──────────────────────────────────────────────────</span></span>
 <span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\n</span><span class="st">Plotting..."</span>)</span>
 <span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>c_obs, c_mod <span class="op">=</span> <span class="st">'#1a1a1a'</span>, <span class="st">'#2166ac'</span></span>
@@ -1417,11 +1417,18 @@ ER:           RMSE = 0.231 mgO₂/L/h, R² = 0.8994</code></pre>
 <span id="cb20-135"><a href="#cb20-135" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> fmt <span class="kw">in</span> [<span class="st">'svg'</span>, <span class="st">'png'</span>]:</span>
 <span id="cb20-136"><a href="#cb20-136" aria-hidden="true" tabindex="-1"></a>    fig.savefig(os.path.join(OUTPUT_DIR, <span class="ss">f'diel_v9_results.</span><span class="sc">{</span>fmt<span class="sc">}</span><span class="ss">'</span>),</span>
 <span id="cb20-137"><a href="#cb20-137" aria-hidden="true" tabindex="-1"></a>                <span class="bu">format</span><span class="op">=</span>fmt, dpi<span class="op">=</span><span class="dv">150</span>, bbox_inches<span class="op">=</span><span class="st">'tight'</span>)</span>
-<span id="cb20-138"><a href="#cb20-138" aria-hidden="true" tabindex="-1"></a>plt.close()</span>
+<span id="cb20-138"><a href="#cb20-138" aria-hidden="true" tabindex="-1"></a><span class="co"># plt.close()</span></span>
 <span id="cb20-139"><a href="#cb20-139" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>
 Plotting...</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Diel_C_Isotope_Model_v9_files/figure-html/cell-14-output-2.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
 </div>
 </div>
 </section>
